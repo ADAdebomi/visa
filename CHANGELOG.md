@@ -1,3 +1,10 @@
-## [0.0.1] - TODO: Add release date.
+## [1.0.0] - 12/23/20
+* Initial Release
+* Rejoice!
 
-* TODO: Describe initial release.
+## [1.0.2] - 12/23/20
+* Update Docs
+
+## [1.0.3] - 12/25/20
+* Code formatted with dartfmt
+* Shorter description in pubspec.yaml

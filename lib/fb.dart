@@ -7,20 +7,20 @@ import 'auth-data.dart';
 import 'engine/oauth.dart';
 
 /// Enables Facebook [OAuth] authentication
-class FaceBookAuth implements Visa{
+class FacebookAuth implements Visa {
   final baseUrl = 'https://www.facebook.com/v8.0/dialog/oauth';
   SimpleAuth visa;
 
-  FaceBookAuth(){
-    // User profile API endpoint.
-    var baseProfileUrl = 'https://graph.facebook.com/me';
-
+  FacebookAuth() {
     visa = SimpleAuth(
         baseUrl: baseUrl,
+
         /// Sends a request to the user profile api
         /// endpoint. Returns an AuthData object.
-        getAuthData: (Map <String, String> data) async {
+        getAuthData: (Map<String, String> data) async {
           final String token = data[OAuth.TOKEN_KEY];
+          // User profile API endpoint.
+          var baseProfileUrl = 'https://graph.facebook.com/me';
           final String profileUrl = '$baseProfileUrl'
               '?access_token=$token'
               '&fields=first_name,last_name,email';
@@ -29,18 +29,14 @@ class FaceBookAuth implements Visa{
           var profileJson = json.decode(profileResponse.body);
 
           return authData(profileJson, data);
-        }
-    );
+        });
   }
 
   /// This function combines information
   /// from the user [json] and auth response [data]
   /// to build an [AuthData] object.
   @override
-  AuthData authData(
-      Map<String, dynamic> json,
-      Map<String, String>data
-      ){
+  AuthData authData(Map<String, dynamic> json, Map<String, String> data) {
     final String accessToken = data[OAuth.TOKEN_KEY];
     final String profileImgUrl = 'https://graph.facebook.com/me/picture'
         '?type=large'
@@ -55,7 +51,6 @@ class FaceBookAuth implements Visa{
         email: json['email'] as String,
         profileImgUrl: profileImgUrl,
         response: data,
-        userJson: json
-    );
+        userJson: json);
   }
 }

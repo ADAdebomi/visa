@@ -1,6 +1,10 @@
 # visa
-Easy third party authentication for flutter apps. This README is under construction.
+This is an **OAuth 2.0** package that makes it super easy to add third party authentication to flutter apps. It has support for **FB**, **Google**, **Discord**, **Twitch**, and **Github** auth. It also provides support for adding new OAuth providers.
 
+### Demo
+<img src="https://drive.google.com/uc?export=view&id=1KRz_GgRGqiT7rkycPRgdQvjF4u7G7pg5" alt="demo" width="550"></img>
+
+## Reference
 - [Getting Started](#getting-started)
 - [Basic Usage](#basic-usage)
   * [Get a Provider](#step-1---get-a-provider)
@@ -11,10 +15,27 @@ Easy third party authentication for flutter apps. This README is under construct
   * [Creating an OAuth Provider](#creating-an-oauth-provider)
   * [Constructor](#constructor)
   * [authData Function](#authdata-function)
+  * [Handling Intermediate Steps](#handling-intermediate-steps)
 
 ## Getting Started
 
-Install the visa package
+### Install visa:
+
+- Open your pubspec.yaml file and add ```visa:``` under dependencies.
+- From the terminal: Run flutter pub get.
+- Add the relevant import statements in the Dart code.
+```dart
+// Possible imports:
+import 'package:visa/fb.dart';
+import 'package:visa/google.dart';
+import 'package:visa/github.dart';
+import 'package:visa/discord.dart';
+import 'package:visa/twitch.dart';
+import 'package:visa/auth-data.dart';
+import 'package:visa/engine/oauth.dart';
+import 'package:visa/engine/simple-auth.dart';
+import 'package:visa/engine/visa.dart';
+```
 
 ## Basic Usage 
 
@@ -23,7 +44,6 @@ Implementing new providers is covered under *Advanced Usage*.
 There are 6 default OAuth providers at the moment:
 ```dart
   FacebookAuth()
-  TwitterAuth()
   TwitchAuth()
   DiscordAuth()
   GithubAuth()
@@ -75,7 +95,7 @@ class AuthPage extends StatelessWidget {
   }
 }
 ```
-In the sample above, the named parameter <b>onDone</b> is a callback which recieves a single arument: an <b>AuthData</b> object, which contains all the authentication info. We'll look at <b>AuthData</b> in the next section but here's how you would pass an <b>AuthData</b> object to the next screen via the <b>onDone</b> callback.
+In the sample above, the named parameter **onDone** is a callback which recieves a single arument: an [AuthData](#step-3---use-authdata) object, which contains all the authentication info. We'll look at [AuthData](#step-3---use-authdata) in the next section but here's how you would pass an [AuthData](#step-3---use-authdata) object to the next screen via the **onDone** callback.
 
 ```dart
 done(AuthData authData){
@@ -107,10 +127,10 @@ class AuthData {
   final String accessToken; // OAuth access token
 }
 ```
-It provides shortcuts to access common user properties (userId, name, email, profile image) as well as the accessToken. The complete, returned user json can be accessed through the <b>userJson</b> property and you can access the full authentication response (the response in which we recieved an API access token) through the <b>response</b> property. 
+It provides shortcuts to access **common user properties** (userId, name, email, profile image) as well as the **accessToken**. The complete, returned user json can be accessed through the **userJson** property and you can access the full authentication response (the response in which we recieved an API access token) through the **response** property. 
 
 ### Step 4 - Rejoice!
-You have successfully implemented third party auth in your app! you're now one step closer to launch. Rejoice!
+You have successfully implemented third party auth in your app! you're one step closer to launch. Rejoice!
 
 ## Advanced Usage
 You might need an OAuth provider that's not currently supported. The Visa interface and the SimpleAuth class make this possible. Have a look at the Visa interface:
@@ -213,7 +233,52 @@ AuthData authData(
   );
 }
 ```
-And that's it! If you create a new provider, feel free to open a PR and I'll be happy to add it to the project.
+
+#### Handling Intermediate Steps:
+In some cases, the intitial request to an OAuth endpoint returns a code instead of an access token. This code has to be 
+exchanged for an actual api access token. Github, for instance, uses this OAuth flow and the code above needs a few adjustments to accomodate
+the intermediate step. Let's take a look at the first few lines of the getAuthData function created in the Github constructor:
+```dart
+getAuthData(Map <String, String> data) async {
+    // This function retrieves the access token and
+    // adds it to the data HashMap.
+    await _getToken(data);
+    
+    // We can now access the token
+    var token = data[OAuth.TOKEN_KEY];
+    
+    // ... Make api requests/retrieve user data  with the token
+}
+```
+_getToken makes the request to exchange an OAuth code for an access token.
+
+```dart
+  /// Github's [OAuth] endpoint returns a code
+  /// which can be exchanged for a token. This
+  /// function performs the exchange and adds the
+  /// returned data to the response [data] map.
+  _getToken(Map<String, String> data) async {
+    var tokenEndpoint = 'https://github.com/login/oauth/access_token';
+    var tokenResponse = await http.post(tokenEndpoint,
+        headers: {'Accept': 'application/json',},
+        body: {
+          'client_id': data[OAuth.CLIENT_ID_KEY],
+          'client_secret': data[OAuth.CLIENT_SECRET_KEY],
+          'code': data[OAuth.CODE_KEY],
+          'redirect_uri': data[OAuth.REDIRECT_URI_KEY],
+          'state': data[OAuth.STATE_KEY]
+        });
+
+    var responseJson = json.decode(tokenResponse.body);
+    var tokenTypeKey = 'token_type';
+
+    data[OAuth.TOKEN_KEY] = responseJson[OAuth.TOKEN_KEY] as String;
+    data[OAuth.SCOPE_KEY] = responseJson[OAuth.SCOPE_KEY] as String;
+    data[tokenTypeKey] = responseJson[tokenTypeKey] as String;
+  }
+}
+```
+And that's how to handle intermedite OAuth steps! If you end up creating a new provider, feel free to open a PR and I'll be happy to add it to the project.
 Happy OAuthing!
 
 ## Reference:
@@ -228,4 +293,6 @@ Happy OAuthing!
   * [Creating an OAuth Provider](#creating-an-oauth-provider)
   * [Constructor](#constructor)
   * [authData Function](#authdata-function)
-
+  * [Handling Intermediate Steps](#handling-intermediate-steps)
+  
+  
